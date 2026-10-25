@@ -1,5 +1,26 @@
 import Link from "next/link";
+import { Github, Mail, Phone } from "lucide-react";
 import { Logo } from "@/components/layout/logo";
+
+/** Where to reach whoever built this. */
+const contacts: {
+  label: string;
+  href: string;
+  icon: typeof Github;
+  /** Only the GitHub link leaves the site; mailto: and tel: hand off to an app. */
+  external?: boolean;
+}[] = [
+  {
+    label: "SAQUIB-KHAN90",
+    href: "https://github.com/SAQUIB-KHAN90",
+    icon: Github,
+    external: true,
+  },
+  { label: "saquibkhan890098@gmail.com", href: "mailto:saquibkhan890098@gmail.com", icon: Mail },
+  // The country code is in the href so it dials from anywhere, and left out
+  // of the label, where it would only be noise to the people who live here.
+  { label: "9044500609", href: "tel:+919044500609", icon: Phone },
+];
 
 const cols: { title: string; links: [string, string][] }[] = [
   {
@@ -62,30 +83,28 @@ export function SiteFooter() {
             © 2026 HouseSwap · Pilot in Delhi, Chandigarh and Jaipur
           </span>
 
-          <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center">
-            <span>
-              Designed and developed by{" "}
-              <a
-                href="https://github.com/SAQUIB-KHAN90"
-                target="_blank"
-                rel="noreferrer noopener"
-                className="font-semibold text-ink hover:text-brand hover:underline"
-              >
-                Saquib
-              </a>
-            </span>
-            <span aria-hidden>·</span>
-            <a
-              href="mailto:saquibkhan890098@gmail.com"
-              className="hover:text-ink hover:underline"
-            >
-              saquibkhan890098@gmail.com
-            </a>
-            <span aria-hidden>·</span>
-            <a href="tel:+919044500609" className="hover:text-ink hover:underline">
-              9044500609
-            </a>
-          </p>
+          <div className="flex flex-col items-center gap-1.5">
+            <p>
+              Designed and developed by <span className="font-semibold text-ink">Saquib</span>
+            </p>
+            {/* Icon and label together, not icon alone: three unlabelled
+                glyphs make a reader guess, and a phone number nobody can
+                read is not a contact detail. */}
+            <ul className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+              {contacts.map(({ label, href, icon: Icon, external }) => (
+                <li key={label}>
+                  <a
+                    href={href}
+                    {...(external ? { target: "_blank", rel: "noreferrer noopener" } : {})}
+                    className="inline-flex items-center gap-1.5 transition-colors hover:text-brand hover:underline"
+                  >
+                    <Icon className="size-3.5 shrink-0" aria-hidden />
+                    {label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
 
           <span className="text-center md:text-right">Terms · Privacy · Safety policy</span>
         </div>
