@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!--
+    The logo mark from components/layout/logo.tsx, on a filled tile.
+
+    A tab favicon is 16px of someone's peripheral vision, so the strokes are
+    heavier than the in-page logo and the wordmark is dropped: at that size it
+    would be a smudge. The brand green ground is what makes it findable in a
+    row of white-tabbed sites.
+  -->
+  <rect width="32" height="32" rx="7" fill="#13624E"/>
+  <g fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6 14.5 16 6l10 8.5"/>
+    <path d="M10 18.5h12M10 18.5l2.8-2.8M22 18.5l-2.8 2.8"/>
+  </g>
+  <path d="M10 24.5h12" fill="none" stroke="#E0952B" stroke-width="2.6" stroke-linecap="round"/>
+</svg>

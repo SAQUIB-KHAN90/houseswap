@@ -1,0 +1,47 @@
+{
+  "name": "houseswap",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test:points": "tsx src/lib/points/rates.test.ts",
+    "test:notify": "tsx src/lib/notify/notify.test.ts",
+    "seed": "tsx --env-file=.env scripts/seed.ts",
+    "test:db": "node scripts/db-test.mjs",
+    "build:check": "node scripts/build-check.mjs",
+    "db:bundle": "node scripts/bundle-pending.mjs",
+    "db:verify": "node scripts/verify-pending.mjs",
+    "photos:index": "node scripts/index-photos.mjs"
+  },
+  "dependencies": {
+    "@radix-ui/react-label": "^2.1.0",
+    "@radix-ui/react-slot": "^1.1.0",
+    "@supabase/ssr": "^0.5.2",
+    "@supabase/supabase-js": "^2.45.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "framer-motion": "^12.0.0",
+    "leaflet": "^1.9.4",
+    "lucide-react": "^0.469.0",
+    "next": "^15.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "server-only": "^0.0.1",
+    "tailwind-merge": "^3.0.0"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.11",
+    "@tailwindcss/postcss": "^4.0.0",
+    "@types/leaflet": "^1.9.22",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^4.0.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.0"
+  }
+}
