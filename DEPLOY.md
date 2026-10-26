@@ -65,9 +65,21 @@ than it needs to be, permanently.
 
 ## 5. Deploy, then check the cron
 
-`vercel.json` already schedules `/api/cron/reminders` hourly. After the first
-deploy, Settings → Cron Jobs should list it. Vercel sends `CRON_SECRET`
-automatically; the route refuses every call without it.
+`vercel.json` schedules `/api/cron/reminders` **once a day at 05:00 UTC**
+(10:30 IST). After the first deploy, Settings → Cron Jobs should list it.
+Vercel sends `CRON_SECRET` automatically; the route refuses every call without
+it.
+
+**Why daily and not hourly.** A Vercel Hobby account allows one cron run a day
+and rejects anything more frequent at import time. The job does not mind: it
+asks for "window still open, not yet reminded" and records each send on
+`stay_requests.reminder_sent_at`, so it delivers exactly once whether it runs
+hourly, daily or by hand.
+
+The trade-off is only in timing. A stay that checks out just after the daily
+run is reminded close to the end of its 24 hours rather than in the middle of
+it. On a Pro plan, change the schedule to `0 * * * *` and nothing else needs to
+move.
 
 Settlement is **not** on Vercel — it runs on pg_cron inside Supabase
 (`supabase/scheduled/settle.sql`), so hosts get paid whether or not the web app

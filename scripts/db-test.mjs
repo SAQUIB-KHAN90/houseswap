@@ -41,6 +41,7 @@ const MIGRATIONS = [
   "0009_limits_and_location.sql",
   "0010_abuse_signals.sql",
   "0011_notify_channels.sql",
+  "0012_reminder_sent.sql",
 ];
 
 const read = (...parts) => readFile(join(supabase, ...parts), "utf8");

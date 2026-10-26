@@ -32,7 +32,7 @@ Deploying to Vercel: see [DEPLOY.md](DEPLOY.md).
 `npm run test:db` needs no Postgres and no Docker: PGlite is a real Postgres
 compiled to WebAssembly, so the triggers, the plpgsql and the row-level
 security all run as they would on the server. 137 assertions, covering
-migrations 0001 to 0011.
+migrations 0001 to 0012.
 
 ## Structure
 
@@ -210,8 +210,13 @@ select settle_due_stays(interval '0 seconds');  -- settle everything due now
 ```
 
 **Reminders, in the app.** `/api/cron/reminders` tells both sides when the
-window to report damage is closing. `vercel.json` schedules it hourly; any
-scheduler works as long as it sends `Authorization: Bearer $CRON_SECRET`.
+window to report damage is closing. `vercel.json` schedules it once a day at
+05:00 UTC, which is what a Vercel Hobby account allows; any scheduler works as
+long as it sends `Authorization: Bearer $CRON_SECRET`.
+
+The job does not depend on its cadence. It selects stays whose 24-hour window
+is still open and that have no `reminder_sent_at`, then records the send — so
+hourly, daily, twice over or by hand all deliver exactly once.
 Without `CRON_SECRET` set the route refuses every call rather than running open.
 
 ## Notifications

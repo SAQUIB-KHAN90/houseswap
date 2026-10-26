@@ -56,6 +56,7 @@ check it.
 | `0009_limits_and_location.sql` | Rate limits, and a public approximate location |
 | `0010_abuse_signals.sql` | What flags a member for staff review |
 | `0011_notify_channels.sql` | Notification channels, opt-in |
+| `0012_reminder_sent.sql` | Remembering a reminder went out |
 
 Tables: `profiles`, `listings`, `listing_addresses`, `listing_photos`,
 `availability`, `stay_requests`, `points_ledger`, `checklists`,

@@ -1,6 +1,6 @@
 # Database
 
-Eleven migrations, applied in order. Together they hold the whole points economy,
+Twelve migrations, applied in order. Together they hold the whole points economy,
 the stay state machine and the way a dispute ends.
 
 | File | Holds |
@@ -16,6 +16,7 @@ the stay state machine and the way a dispute ends.
 | `migrations/0009_limits_and_location.sql` | Rate limits, and a public approximate location |
 | `migrations/0010_abuse_signals.sql` | What flags a member for staff review |
 | `migrations/0011_notify_channels.sql` | Notification channels, opt-in |
+| `migrations/0012_reminder_sent.sql` | Remembering a reminder went out |
 
 ## Applying it to a Supabase project
 
@@ -69,7 +70,8 @@ psql -d houseswap_test -v ON_ERROR_STOP=1 \
   -f migrations/0008_moderation.sql \
   -f migrations/0009_limits_and_location.sql \
   -f migrations/0010_abuse_signals.sql \
-  -f migrations/0011_notify_channels.sql
+  -f migrations/0011_notify_channels.sql \
+  -f migrations/0012_reminder_sent.sql
 psql -d houseswap_test -f tests/scenario.sql
 ```
 

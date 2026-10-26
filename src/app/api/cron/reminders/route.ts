@@ -11,15 +11,21 @@ import { inQuietHours } from "@/lib/notify/quiet-hours";
  * (supabase/scheduled/settle.sql). This endpoint only sends mail, which needs
  * the app anyway.
  *
- * Meant to be called hourly. Vercel Cron is configured in vercel.json; any
- * scheduler works as long as it sends the secret.
+ * **The schedule does not matter.** It used to: the job took a one-hour slice
+ * of check-outs and relied on running hourly to hit each stay exactly once,
+ * which quietly breaks on any other cadence — and a Vercel Hobby account
+ * allows only a daily cron. It now asks for "window still open, not yet
+ * reminded" and records the send, so hourly, daily, twice over or by hand all
+ * deliver once.
  */
 
 export const dynamic = "force-dynamic";
 
-/** Remind once, in the hour that leaves this much of the window. */
-const REMIND_AFTER_HOURS = 12;
+/** How long after check-out a member may still report a problem. */
 const WINDOW_HOURS = 24;
+
+/** Nobody gets a second reminder with less than this left; it would only nag. */
+const MIN_HOURS_LEFT = 1;
 
 function authorised(request: NextRequest): boolean {
   const secret = process.env.CRON_SECRET;
@@ -41,24 +47,24 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "service role key not configured" }, { status: 500 });
   }
 
-  // Not an error: the next run inside waking hours picks these up, and they
-  // are still well within the stay's 24-hour window.
+  // A guard for a hand-run at night, not for the schedule: the cron is set to
+  // mid-morning IST. On a daily cadence this is the only run of the day, so it
+  // must not routinely land here.
   if (inQuietHours(new Date())) {
     return NextResponse.json({ skipped: "quiet hours", stays: 0, emails: 0 });
   }
 
   const now = Date.now();
-  const from = new Date(now - (REMIND_AFTER_HOURS + 1) * 3_600_000).toISOString();
-  const until = new Date(now - REMIND_AFTER_HOURS * 3_600_000).toISOString();
+  const windowOpenedAfter = new Date(now - WINDOW_HOURS * 3_600_000).toISOString();
 
-  // A one-hour slice, so an hourly run reminds each stay exactly once without
-  // needing a "reminded" flag on the row.
+  // Everything still inside its 24 hours that has not been reminded yet.
   const { data, error } = await admin
     .from("stay_requests")
     .select("id, checked_out_at")
     .eq("status", "checked_out")
-    .gte("checked_out_at", from)
-    .lt("checked_out_at", until);
+    .is("reminder_sent_at", null)
+    .gte("checked_out_at", windowOpenedAfter)
+    .order("checked_out_at");
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -66,12 +72,24 @@ export async function GET(request: NextRequest) {
 
   const stays = (data ?? []) as { id: string; checked_out_at: string }[];
   let sent = 0;
+  let reminded = 0;
 
   for (const stay of stays) {
     const elapsed = (now - new Date(stay.checked_out_at).getTime()) / 3_600_000;
-    const hoursLeft = Math.max(1, Math.round(WINDOW_HOURS - elapsed));
+    const hoursLeft = Math.round(WINDOW_HOURS - elapsed);
+    if (hoursLeft < MIN_HOURS_LEFT) continue;
+
     sent += await notifyCheckOutReminder(stay.id, hoursLeft);
+
+    // Marked whether or not a message actually went out. A member with every
+    // channel switched off, or a mail provider having a bad minute, should not
+    // turn into the same stay being retried on every run forever.
+    const { error: markError } = await admin
+      .from("stay_requests")
+      .update({ reminder_sent_at: new Date().toISOString() })
+      .eq("id", stay.id);
+    if (!markError) reminded++;
   }
 
-  return NextResponse.json({ stays: stays.length, emails: sent });
+  return NextResponse.json({ stays: stays.length, reminded, emails: sent });
 }

@@ -1,0 +1,699 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      /* HouseSwap's own tokens, from src/app/globals.css */
+      :root {
+        --page: #fbfaf8;
+        --surface: #ffffff;
+        --ink: #1b1a17;
+        --muted: #6b665e;
+        --line: #e7e3dc;
+        --brand: #13624e;
+        --brand-tint: #e8f1ed;
+        /* The product's --star is #e0952b, which sits at 2.5:1 on white — fine
+           for a small rating beside a name, too low for video. Darkened to the
+           same hue at 4.5:1. */
+        --star: #a16b1f;
+        /* The product uses Plus Jakarta Sans, which is not in the Hyperframes
+           font bundle. Outfit is the nearest geometric humanist face and
+           resolves by name without an @font-face. */
+        --font-display: "Outfit", sans-serif;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: var(--page);
+      }
+
+      #root {
+        width: 100%;
+        height: 100%;
+        font-family: var(--font-display);
+        color: var(--ink);
+        position: relative;
+      }
+
+      .scene {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* ---------- shared type ---------- */
+      .line {
+        font-size: 66px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        text-align: center;
+        line-height: 1.12;
+        max-width: 1480px;
+      }
+      .line .accent {
+        color: var(--brand);
+      }
+
+      /* ---------- the home card (the product's unit) ----------
+         Scaled up from the real card so the city and the rate clear the 28px
+         reading floor at 1080p. The supporting lines stay small and carry
+         data-layout-ignore: in a 20s film nobody reads "up to 4 guests", they
+         read the place and the price. */
+      .home {
+        width: 380px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 16px;
+        box-shadow:
+          0 1px 2px rgba(27, 26, 23, 0.06),
+          0 8px 24px -12px rgba(27, 26, 23, 0.12);
+      }
+      .home .shot {
+        height: 190px;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #e7e3dc;
+      }
+      .home .shot img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+      .home .where {
+        margin-top: 14px;
+        font-size: 30px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 10px;
+      }
+      .home .rating {
+        font-size: 22px;
+        font-weight: 600;
+        color: var(--star);
+        white-space: nowrap;
+      }
+      .home .meta {
+        margin-top: 4px;
+        font-size: 21px;
+        color: var(--muted);
+      }
+      .home .rate {
+        margin-top: 12px;
+        font-size: 30px;
+        font-weight: 700;
+      }
+      .home .rate span {
+        font-weight: 400;
+        color: var(--muted);
+      }
+
+      /* ---------- scene 1 ---------- */
+      #s1 {
+        gap: 70px;
+      }
+      #s1-pair {
+        display: flex;
+        align-items: center;
+        gap: 60px;
+      }
+      #s1-arrow {
+        width: 190px;
+        height: 4px;
+        background: var(--brand);
+        border-radius: 2px;
+        position: relative;
+      }
+      #s1-arrow::before,
+      #s1-arrow::after {
+        content: "";
+        position: absolute;
+        top: -9px;
+        width: 22px;
+        height: 22px;
+        border-top: 4px solid var(--brand);
+        border-right: 4px solid var(--brand);
+      }
+      #s1-arrow::before {
+        left: -2px;
+        transform: rotate(-135deg);
+      }
+      #s1-arrow::after {
+        right: -2px;
+        transform: rotate(45deg);
+      }
+      #s1-crack {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 6px;
+        height: 58px;
+        margin-left: -3px;
+        margin-top: -29px;
+        background: var(--page);
+        transform: rotate(14deg);
+        opacity: 0;
+      }
+
+      /* ---------- scene 2 ---------- */
+      #s2 {
+        gap: 58px;
+      }
+      #s2-stage {
+        position: relative;
+        width: 1360px;
+        height: 360px;
+      }
+      #s2-centre {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        /* centering via GSAP xPercent/yPercent — this element is tweened on scale. */
+        z-index: 3;
+      }
+      .city {
+        position: absolute;
+        top: 50%;
+        width: 268px;
+        padding: 18px 20px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        box-shadow: 0 8px 24px -14px rgba(27, 26, 23, 0.22);
+        z-index: 2;
+      }
+      .city .name {
+        font-size: 30px;
+        font-weight: 700;
+      }
+      .city .pts {
+        margin-top: 6px;
+        font-size: 28px;
+        color: var(--brand);
+        font-weight: 600;
+      }
+      #c1 {
+        left: 0;
+        margin-top: -128px;
+      }
+      #c2 {
+        left: 0;
+        margin-top: 30px;
+      }
+      #c3 {
+        right: 0;
+        margin-top: -50px;
+      }
+      .wire {
+        position: absolute;
+        height: 2px;
+        background: var(--brand);
+        opacity: 0.42;
+        transform-origin: left center;
+        z-index: 1;
+      }
+      #w1 {
+        left: 268px;
+        top: 50%;
+        width: 360px;
+        margin-top: -92px;
+        transform: rotate(9deg);
+      }
+      #w2 {
+        left: 268px;
+        top: 50%;
+        width: 360px;
+        margin-top: 66px;
+        transform: rotate(-9deg);
+      }
+      #w3 {
+        right: 268px;
+        top: 50%;
+        width: 360px;
+        margin-top: -18px;
+        transform-origin: right center;
+      }
+
+      /* ---------- scene 3 ---------- */
+      #s3-head {
+        font-size: 30px;
+        font-weight: 600;
+        color: var(--muted);
+        margin-bottom: 18px;
+        text-align: center;
+      }
+      #s3-chips {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 34px;
+        justify-content: center;
+      }
+      .chip {
+        font-size: 28px;
+        font-weight: 500;
+        color: var(--muted);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 10px 20px;
+        background: var(--surface);
+      }
+      .chip.on {
+        color: var(--brand);
+        border-color: var(--brand);
+        background: var(--brand-tint);
+      }
+      #s3-cards {
+        display: flex;
+        gap: 32px;
+        justify-content: center;
+      }
+      #s3-panel {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        /* centering is set by GSAP (xPercent/yPercent) because this element
+           is also tweened on y; a CSS transform here would be overwritten. */
+        width: 620px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 36px 38px;
+        box-shadow: 0 24px 60px -28px rgba(27, 26, 23, 0.35);
+        opacity: 0;
+        z-index: 5;
+      }
+      #s3-panel .row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 28px;
+        color: var(--muted);
+      }
+      #s3-panel .total {
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 1px solid var(--line);
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+      }
+      #s3-panel .total .lab {
+        font-size: 30px;
+        font-weight: 700;
+      }
+      #s3-panel .total .val {
+        font-size: 56px;
+        font-weight: 800;
+        color: var(--brand);
+      }
+      #s3-held {
+        margin-top: 16px;
+        font-size: 28px;
+        color: var(--brand);
+        background: var(--brand-tint);
+        border-radius: 8px;
+        padding: 11px 16px;
+        text-align: center;
+        font-weight: 600;
+        opacity: 0;
+      }
+      #s3-proof {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 34px;
+        opacity: 0;
+        z-index: 4;
+      }
+      #s3-frames {
+        display: flex;
+        gap: 30px;
+      }
+      .frame {
+        width: 380px;
+      }
+      .frame .img {
+        height: 250px;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        background: #e7e3dc;
+      }
+      .frame .img img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+      .frame .cap {
+        margin-top: 12px;
+        font-size: 28px;
+        color: var(--muted);
+        display: flex;
+        justify-content: space-between;
+      }
+
+      /* ---------- scene 4 ---------- */
+      #s4 {
+        background: var(--brand);
+        gap: 34px;
+      }
+      #s4-mark {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+      }
+      #s4-mark .word {
+        font-size: 52px;
+        font-weight: 800;
+        color: #fff;
+        letter-spacing: -0.03em;
+      }
+      #s4-line {
+        font-size: 82px;
+        font-weight: 800;
+        color: #fff;
+        letter-spacing: -0.025em;
+      }
+      #s4-cities {
+        font-size: 28px;
+        font-weight: 500;
+        color: rgba(255, 255, 255, 0.78);
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="21.4"
+      data-width="1920"
+      data-height="1080"
+    >
+      <!-- ============ Scene 1 — the problem (0 – 3.6s) ============
+           The two homes are present at frame 0 so the thumbnail is the product,
+           not an empty ground. -->
+      <section id="s1" class="scene clip" data-start="0" data-duration="3.6" data-track-index="0">
+        <div id="s1-pair">
+          <div class="home" id="s1-a">
+            <div class="shot"><img src="assets/photos/home-01.jpg" alt="A sunlit living room in Mayur Vihar" /></div>
+            <div class="where">
+              Mayur Vihar, Delhi <span class="rating" data-layout-ignore>★ 4.8</span>
+            </div>
+            <div class="meta" data-layout-ignore>Entire home · up to 4 guests</div>
+            <div class="rate">56 points <span>night</span></div>
+          </div>
+          <div id="s1-arrow"><div id="s1-crack"></div></div>
+          <div class="home" id="s1-b">
+            <div class="shot"><img src="assets/photos/home-03.jpg" alt="A living room with a staircase in C-Scheme" /></div>
+            <div class="where">
+              C-Scheme, Jaipur <span class="rating" data-layout-ignore>★ 4.9</span>
+            </div>
+            <div class="meta" data-layout-ignore>Entire home · up to 6 guests</div>
+            <div class="rate">72 points <span>night</span></div>
+          </div>
+        </div>
+        <h1 id="s1-line" class="line">Nobody wants your city<br />on your dates.</h1>
+      </section>
+
+      <!-- ============ Scene 2 — the network (3.6 – 8.6s) ============ -->
+      <section id="s2" class="scene clip" data-start="3.6" data-duration="5" data-track-index="1">
+        <div id="s2-stage">
+          <div class="wire" id="w1"></div>
+          <div class="wire" id="w2"></div>
+          <div class="wire" id="w3"></div>
+          <div class="home" id="s2-centre">
+            <div class="shot"><img src="assets/photos/home-05.jpg" alt="A living room with a blue sofa" /></div>
+            <div class="where">
+              Your home <span class="rating" data-layout-ignore>★ 4.8</span>
+            </div>
+            <div class="meta" data-layout-ignore>Hosted once</div>
+            <div class="rate">56 points <span>night</span></div>
+          </div>
+          <div class="city" id="c1">
+            <div class="name">Delhi</div>
+            <div class="pts">from 16 points night</div>
+          </div>
+          <div class="city" id="c2">
+            <div class="name">Chandigarh</div>
+            <div class="pts">from 14 points night</div>
+          </div>
+          <div class="city" id="c3">
+            <div class="name">Jaipur</div>
+            <div class="pts">from 16 points night</div>
+          </div>
+        </div>
+        <h2 id="s2-line" class="line">
+          You don't swap with one person.<br /><span class="accent"
+            >You swap with the network.</span
+          >
+        </h2>
+      </section>
+
+      <!-- ============ Scene 3 — the app working (8.6 – 17.1s) ============ -->
+      <section id="s3" class="scene clip" data-start="8.6" data-duration="9.3" data-track-index="2">
+        <div id="s3-search">
+          <div id="s3-head">Delhi · 5–9 Nov · 4 nights</div>
+          <div id="s3-chips">
+            <div class="chip on">1BHK</div>
+            <div class="chip">2BHK</div>
+            <div class="chip">3BHK</div>
+            <div class="chip">Room + kitchen</div>
+          </div>
+          <div id="s3-cards">
+            <div class="home" id="k1">
+              <div class="shot"><img src="assets/photos/home-08.jpg" alt="A bright living room in Greater Kailash" /></div>
+              <div class="where">
+                Greater Kailash II <span class="rating" data-layout-ignore>★ 4.9</span>
+              </div>
+              <div class="meta" data-layout-ignore>Entire home · up to 4 guests</div>
+              <div class="rate">56 points <span>night</span></div>
+            </div>
+            <div class="home" id="k2">
+              <div class="shot"><img src="assets/photos/home-04.jpg" alt="A fitted kitchen in Sector 17" /></div>
+              <div class="where">
+                Sector 17, Chandigarh <span class="rating" data-layout-ignore>★ 4.8</span>
+              </div>
+              <div class="meta" data-layout-ignore>Entire home · up to 2 guests</div>
+              <div class="rate">40 points <span>night</span></div>
+            </div>
+            <div class="home" id="k3">
+              <div class="shot"><img src="assets/photos/home-06.jpg" alt="A private bedroom in Sector 35" /></div>
+              <div class="where">
+                Sector 35, Chandigarh <span class="rating" data-layout-ignore>★ 4.6</span>
+              </div>
+              <div class="meta" data-layout-ignore>Private room · up to 1 guest</div>
+              <div class="rate">14 points <span>night</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="s3-panel">
+          <div class="row"><span>56 points × 4 nights</span><span>224</span></div>
+          <div class="total">
+            <span class="lab">Held on request</span><span class="val" id="s3-count">0</span>
+          </div>
+          <div id="s3-held">held until the host replies</div>
+        </div>
+
+        <div id="s3-proof">
+          <div id="s3-frames">
+            <div class="frame">
+              <div class="img"><img src="assets/photos/home-06.jpg" alt="the same bedroom at check-in" /></div>
+              <div class="cap"><span>Check-in</span><span data-layout-ignore>12 Nov</span></div>
+            </div>
+            <div class="frame">
+              <div class="img"><img src="assets/photos/home-06.jpg" alt="the same bedroom at check-out" /></div>
+              <div class="cap"><span>Check-out</span><span data-layout-ignore>16 Nov</span></div>
+            </div>
+          </div>
+          <div class="line" id="s3-proof-line" style="font-size: 56px">
+            Every room photographed twice.
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ Scene 4 — outro (17.1 – 20.6s) ============ -->
+      <section id="s4" class="scene clip" data-start="17.9" data-duration="3.5" data-track-index="3">
+        <div id="s4-mark">
+          <svg width="60" height="60" viewBox="0 0 28 28" aria-hidden="true">
+            <path
+              d="M3.5 12.5 14 4l10.5 8.5"
+              fill="none"
+              stroke="#fff"
+              stroke-width="2.4"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M8 16.5h12M8 16.5l3-3M20 16.5l-3 3"
+              fill="none"
+              stroke="#fff"
+              stroke-width="2.4"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M8 22h12"
+              fill="none"
+              stroke="#e0952b"
+              stroke-width="2.4"
+              stroke-linecap="round"
+            />
+          </svg>
+          <div class="word">houseswap</div>
+        </div>
+        <div id="s4-line">Your home is your ticket.</div>
+        <div id="s4-cities">Pilot · Delhi, Chandigarh and Jaipur</div>
+      </section>
+
+      <!-- ============ audio ============ -->
+      <audio
+        id="bed"
+        class="clip"
+        data-start="0"
+        data-duration="21.4"
+        data-track-index="10"
+        data-volume="0.3"
+        data-fade-out="1.8"
+        src="assets/music/happy-beats-business-moves-vol-12-by-ende-dot-app.mp3"
+      ></audio>
+
+      <!-- the arrow snaps -->
+      <audio id="sfx-snap" class="clip" data-start="1.25" data-duration="0.27" data-track-index="11" data-volume="0.5" src="assets/sfx/impact/impactWood_light_001.ogg"></audio>
+      <!-- three cities land — beat grid 4.39 / 4.91 / 5.34 -->
+      <audio id="sfx-c1" class="clip" data-start="4.39" data-duration="0.11" data-track-index="12" data-volume="0.38" src="assets/sfx/interface/drop_001.ogg"></audio>
+      <audio id="sfx-c2" class="clip" data-start="4.91" data-duration="0.11" data-track-index="13" data-volume="0.38" src="assets/sfx/interface/drop_001.ogg"></audio>
+      <audio id="sfx-c3" class="clip" data-start="5.34" data-duration="0.11" data-track-index="14" data-volume="0.38" src="assets/sfx/interface/drop_001.ogg"></audio>
+      <!-- three listing cards — beat grid 9.29 / 10.37 / 11.46 -->
+      <audio id="sfx-k1" class="clip" data-start="9.29" data-duration="0.69" data-track-index="15" data-volume="0.5" src="assets/sfx/casino/card-place-1.ogg"></audio>
+      <audio id="sfx-k2" class="clip" data-start="10.37" data-duration="0.46" data-track-index="16" data-volume="0.5" src="assets/sfx/casino/card-place-2.ogg"></audio>
+      <audio id="sfx-k3" class="clip" data-start="11.46" data-duration="0.89" data-track-index="17" data-volume="0.5" src="assets/sfx/casino/card-place-3.ogg"></audio>
+      <!-- the total settles — strong cue 13.11 -->
+      <audio id="sfx-held" class="clip" data-start="13.64" data-duration="0.13" data-track-index="18" data-volume="0.45" src="assets/sfx/interface/bong_001.ogg"></audio>
+      <!-- the two frames meet -->
+      <audio id="sfx-proof" class="clip" data-start="15.4" data-duration="0.19" data-track-index="19" data-volume="0.42" src="assets/sfx/interface/drop_002.ogg"></audio>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      /* Stable baselines.
+         GSAP applies a fromTo's "from" values at authoring time, not at the
+         tween's position on the timeline. Where one element carries two
+         fromTo tweens, the second one's "from" would otherwise become the
+         element's resting state for any seek before the first tween runs —
+         so a scrub backwards shows the wrong frame. Setting the resting state
+         explicitly first makes every seek deterministic. */
+      gsap.set("#s1-arrow", { opacity: 0, scaleX: 0.2 });
+      gsap.set("#s1-pair", { filter: "saturate(1)" });
+      gsap.set(["#s2", "#s3"], { opacity: 0 });
+      gsap.set("#s3-panel", { xPercent: -50, yPercent: -50, opacity: 0, y: 24 });
+      gsap.set("#s2-centre", { xPercent: -50, yPercent: -50, opacity: 0, scale: 0.9 });
+      gsap.set("#s3-search", { opacity: 1, scale: 1 });
+
+      /* ---------------- Scene 1 — the problem (0 – 3.6s) ----------------
+         The homes are already on screen at frame 0; only the arrow and the
+         break animate, so the social thumbnail shows the product. */
+      tl.to("#s1-arrow", { opacity: 1, scaleX: 1, duration: 0.45, ease: "power3.out" }, 0.35);
+
+      // the break — a dry snap, then both homes go flat
+      tl.fromTo("#s1-crack", { opacity: 0 }, { opacity: 1, duration: 0.08, ease: "none" }, 1.3);
+      tl.to("#s1-arrow", { opacity: 0.22, duration: 0.3, ease: "power2.out" }, 1.32);
+      tl.to("#s1-pair", { filter: "saturate(0.18)", duration: 0.45, ease: "power2.out" }, 1.34);
+
+      // 7 words — needs ~2.6s on screen; gets 1.45 → 3.25 = 1.8s plus the
+      // 0.35s crossfade it stays legible through
+      tl.fromTo("#s1-line", { opacity: 0, filter: "blur(10px)", y: 14 }, { opacity: 1, filter: "blur(0px)", y: 0, duration: 0.3, ease: "power4.out" }, 1.35);
+      tl.fromTo("#s1", { opacity: 1 }, { opacity: 0, duration: 0.35, ease: "power2.inOut" }, 3.25);
+
+      /* ---------------- Scene 2 — the network (3.6 – 8.6s) ---------------- */
+      tl.to("#s2", { opacity: 1, duration: 0.35, ease: "power2.inOut" }, 3.6);
+      tl.to("#s2-centre", { opacity: 1, scale: 1, duration: 0.45, ease: "power4.out" }, 3.75);
+
+      // 11 words — floor is 3.8s. In at 4.3, out at 8.25 = 3.95s.
+      tl.fromTo("#s2-line", { opacity: 0, filter: "blur(10px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.32, ease: "power4.out" }, 4.3);
+
+      // beat-grid: cities at 4.39s, 4.91s, 5.34s
+      tl.fromTo("#c1", { opacity: 0, x: 60 }, { opacity: 1, x: 0, duration: 0.42, ease: "power4.out" }, 4.39);
+      tl.fromTo("#c2", { opacity: 0, x: 60 }, { opacity: 1, x: 0, duration: 0.42, ease: "power4.out" }, 4.91);
+      tl.fromTo("#c3", { opacity: 0, x: -60 }, { opacity: 1, x: 0, duration: 0.42, ease: "power4.out" }, 5.34);
+
+      // points flow outward once all three are present
+      tl.fromTo(".wire", { scaleX: 0 }, { scaleX: 1, duration: 0.55, ease: "power2.inOut", stagger: 0.06 }, 5.9);
+
+      tl.to("#s2", { opacity: 0, duration: 0.35, ease: "power2.inOut" }, 8.25);
+
+      /* ---------------- Scene 3 — the app working (8.6 – 17.1s) ---------------- */
+      tl.to("#s3", { opacity: 1, duration: 0.3, ease: "power2.inOut" }, 8.6);
+      tl.fromTo("#s3-head", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.3, ease: "power3.out" }, 8.75);
+      tl.fromTo("#s3-chips", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.3, ease: "power3.out" }, 8.9);
+
+      // beat-grid: listing cards at 9.29s, 10.37s, 11.46s — every other beat, so
+      // each rate holds ~1.08s and stays readable
+      tl.fromTo("#k1", { opacity: 0, y: 26, scale: 0.97 }, { opacity: 1, y: 0, scale: 1, duration: 0.42, ease: "power4.out" }, 9.29);
+      tl.fromTo("#k2", { opacity: 0, y: 26, scale: 0.97 }, { opacity: 1, y: 0, scale: 1, duration: 0.42, ease: "power4.out" }, 10.37);
+      tl.fromTo("#k3", { opacity: 0, y: 26, scale: 0.97 }, { opacity: 1, y: 0, scale: 1, duration: 0.42, ease: "power4.out" }, 11.46);
+
+      // The search holds until 12.9 so the third card's city and rate clear
+      // their 1.4s reading floor, then the request panel takes the stage.
+      tl.to("#s3-search", { opacity: 0, scale: 0.96, duration: 0.4, ease: "power2.inOut" }, 12.9);
+      tl.to("#s3-panel", { opacity: 1, y: 0, duration: 0.4, ease: "power4.out" }, 12.95);
+
+      // the counter resolves, settling on the 13.64s beat
+      const counter = { v: 0 };
+      tl.fromTo(counter, { v: 0 }, {
+        v: 224,
+        duration: 0.7,
+        ease: "power2.out",
+        onUpdate: () => {
+          const el = document.querySelector("#s3-count");
+          if (el) el.textContent = Math.round(counter.v);
+        },
+      }, 12.98);
+      // beat-grid: the held label lands on 13.64s
+      tl.fromTo("#s3-held", { opacity: 0 }, { opacity: 1, duration: 0.25, ease: "power3.out" }, 13.64);
+
+      // the proof — 4 words, floor 1.7s; on screen 15.35 → 17.15 = 1.8s
+      tl.to("#s3-panel", { opacity: 0, duration: 0.3, ease: "power2.inOut" }, 15.25);
+      tl.fromTo("#s3-proof", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out" }, 15.4);
+      tl.fromTo("#s3-frames", { scale: 0.95 }, { scale: 1, duration: 0.5, ease: "power4.out" }, 15.4);
+      tl.fromTo("#s3-proof-line", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.28, ease: "power4.out" }, 15.7);
+      tl.to("#s3", { opacity: 0, duration: 0.35, ease: "power2.inOut" }, 17.55);
+
+      /* ---------------- Scene 4 — outro (17.5 – 21.0s) ---------------- */
+      tl.fromTo("#s4", { opacity: 0 }, { opacity: 1, duration: 0.35, ease: "power2.inOut" }, 17.9);
+      tl.fromTo("#s4-mark", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.4, ease: "power4.out" }, 18.02);
+      // beat-locked: 18.56s strong cue — the hero line settles here and holds
+      // dead still for 2.84s, the film's last line, well over its 2s floor
+      tl.fromTo("#s4-line", { opacity: 0, filter: "blur(10px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.35, ease: "power4.out" }, 18.56);
+      tl.fromTo("#s4-cities", { opacity: 0 }, { opacity: 1, duration: 0.35, ease: "power2.out" }, 19.15);
+
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

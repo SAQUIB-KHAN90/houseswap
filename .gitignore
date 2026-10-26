@@ -8,3 +8,6 @@ out
 next-env.d.ts
 supabase/pending.sql
 
+
+# HyperFrames render artifacts (snapshots, check reports) — regenerable.
+brag-output/composition/.hyperframes/
